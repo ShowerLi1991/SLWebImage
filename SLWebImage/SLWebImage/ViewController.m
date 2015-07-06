@@ -28,18 +28,20 @@
     return _appList;
 }
 
-
-
 - (void)viewDidLoad {
     [super viewDidLoad];
-
 }
 
-- (void)touchesBegan:(nonnull NSSet<UITouch *> *)touches withEvent:(nullable UIEvent *)event {
+static dispatch_once_t onceToken = 0;
+static int theIndex = 0;
 
-    int index = arc4random_uniform((UInt32)self.appList.count);
-    AppInfos * app = self.appList[index];
+- (void)touchesBegan:(nonnull NSSet<UITouch *> *)touches withEvent:(nullable UIEvent *)event {
     
+    dispatch_once(&onceToken, ^{
+        NSLog(@"%@", NSHomeDirectory());
+    });
+    
+    AppInfos * app = self.appList[theIndex++%10];
     
     [self.imageView setimageWithURLString:app.icon];
 }

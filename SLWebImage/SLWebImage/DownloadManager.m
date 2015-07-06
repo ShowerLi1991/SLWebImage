@@ -30,14 +30,16 @@
 
 - (void)downloadOperationWithURLString:(NSString *)urlString didFinished:(void (^)(UIImage *))didFinished {
     
-    if (self.downloadOperationCache[urlString] != nil) {
+    NSString * urlStringMD5 = urlString.md5String;
+    
+    if (self.downloadOperationCache[urlStringMD5] != nil) {
         NSLog(@"正在下载中, 已经在下载操作缓存中");
         return;
     }
     
 #warning 有缓存返回缓存
-    if ([self checkImageIsInCache:urlString]) {
-        didFinished(self.imageCache[urlString]);
+    if ([self checkImageIsInCache:urlStringMD5]) {
+        didFinished(self.imageCache[urlStringMD5]);
         return;
     }
     
@@ -46,55 +48,54 @@
     }];
     
     
-    [self.downloadOperationCache setObject:downloadOperation forKey:urlString];
+    [self.downloadOperationCache setObject:downloadOperation forKey:urlStringMD5];
     [self.downloadOperationQueue addOperation:downloadOperation];
 }
 
-- (BOOL)checkImageIsInCache:(NSString *)urlString {
-    if ([self checkImageIsInMemoryCache:urlString]) {
-        return true;
-    }
-    if ([self checkImageIsInDiskCache:urlString]) {
-        return true;
-    }
-    return false;
-}
-
-- (BOOL)checkImageIsInMemoryCache:(NSString *)urlString {
+// 取消已有但还未完成的下载操作
+- (void)cancelDownloadOperationWithURLString:(NSString *)urlStringMD5 {
     
-    if (self.imageCache[urlString] != nil) {
-        NSLog(@"内存缓存");
-        return true;
-    }
-    return false;
-}
-
-- (BOOL)checkImageIsInDiskCache:(NSString *)urlString {
-
-    // 有磁盘缓存, 写入内存
-    UIImage * cache = [UIImage imageWithContentsOfFile:urlString.filePathInCaches];
-    if (cache != nil) {
-        [self.imageCache setObject:cache forKey:urlString];
-        NSLog(@"磁盘缓存");
-        return true;
-    }
-    return false;
-}
-
-- (void)cancelDownloadOperationWithURLString:(NSString *)urlString {
-    
-    DownloadOperation * downloadOperation = self.downloadOperationCache[urlString];
+    DownloadOperation * downloadOperation = self.downloadOperationCache[urlStringMD5];
     
     if (downloadOperation == nil) {
         return;
     }
     
     [downloadOperation cancel];
-    
-    [self.downloadOperationCache removeObjectForKey:urlString];
-    
+
 }
 
+
+- (BOOL)checkImageIsInCache:(NSString *)urlStringMD5 {
+    if ([self checkImageIsInMemoryCache:urlStringMD5]) {
+        NSLog(@"内存缓存返回图片");
+        return true;
+    }
+    if ([self checkImageIsInDiskCache:urlStringMD5]) {
+        NSLog(@"磁盘缓存返回图片");
+        return true;
+    }
+    return false;
+}
+
+- (BOOL)checkImageIsInMemoryCache:(NSString *)urlStringMD5 {
+    
+    if (self.imageCache[urlStringMD5] != nil) {
+        return true;
+    }
+    return false;
+}
+
+- (BOOL)checkImageIsInDiskCache:(NSString *)urlStringMD5 {
+
+    // 有磁盘缓存, 写入内存
+    UIImage * cache = [UIImage imageWithContentsOfFile:urlStringMD5.filePathInCaches];
+    if (cache != nil) {
+        [self.imageCache setObject:cache forKey:urlStringMD5];
+        return true;
+    }
+    return false;
+}
 
 
 
@@ -113,11 +114,21 @@
     return _downloadOperationQueue;
 }
 
+- (NSOperationQueue *)writeToDiskQueue {
+    if (_writeToDiskQueue == nil) {
+        _writeToDiskQueue = [[NSOperationQueue alloc] init];
+    }
+    return _writeToDiskQueue;
+}
+
+
 - (NSMutableDictionary *)downloadOperationCache {
     if (_downloadOperationCache == nil) {
         _downloadOperationCache = [NSMutableDictionary dictionary];
     }
     return _downloadOperationCache;
 }
+
+
 
 @end

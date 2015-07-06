@@ -12,6 +12,7 @@
 
 @property (strong, nonatomic) NSMutableDictionary * downloadOperationCache;
 @property (strong, nonatomic) NSMutableDictionary * imageCache;
+@property (strong, nonatomic) NSOperationQueue * writeToDiskQueue;
 
 + (instancetype)sharedDownloadManager;
 
